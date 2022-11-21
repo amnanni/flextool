@@ -1018,79 +1018,84 @@ check {n in nodeState} : n in nodeBalance;
 param setup2 := gmtime() - datetime0 - setup1 - w_calc_slope;
 display setup2;
 minimize total_cost:
-      + sum {(c, n) in commodity_node, (d, t) in dt} 
-	      pdCommodity[c, 'price', d]
-	      * (
-		      # Buying a commodity (increases the objective function)
-	          + sum {(p, n, sink) in process_source_sink_noEff } 
-			    ( + v_flow[p, n, sink, d, t] )
-	          + sum {(p, n, sink) in process_source_sink_eff } (
-			      + v_flow[p, n, sink, d, t]
-         	          * (if (p, 'min_load_efficiency') in process__ct_method then ptProcess_slope[p, t] else 1 / ptProcess[p, 'efficiency', t])
-		              * (if p in process_unit then p_process_sink_coefficient[p, sink] / p_process_source_coefficient[p, n] else 1)
-                  + (if (p, 'min_load_efficiency') in process__ct_method then 
-	                  + v_online_linear[p, d, t] 
-			              * ptProcess_section[p, t]
-				          * p_entity_unitsize[p]
-					)	  
-				)		  
-			  # Selling to a commodity node (decreases objective function if price is positive)
-	          - sum {(p, source, n) in process_source_sink } (
-			      + v_flow[p, source, n, d, t]
-				)  
-		    ) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
-	  + sum {(g, c, n, d, t) in gcndt_co2} 
-	      p_commodity[c, 'co2_content'] * pdGroup[g, 'co2_price', d] 
-	      * (
-		      # Paying for CO2 (increases the objective function)
-			  + sum {(p, n, sink) in process_source_sink_noEff } 
-			    ( + v_flow[p, n, sink, d, t] )
-	          + sum {(p, n, sink) in process_source_sink_eff } (
-			      + v_flow[p, n, sink, d, t]
-         	          * (if (p, 'min_load_efficiency') in process__ct_method then ptProcess_slope[p, t] else 1 / ptProcess[p, 'efficiency', t])
-		              * (if p in process_unit then p_process_sink_coefficient[p, sink] / p_process_source_coefficient[p, n] else 1)
-                  + (if (p, 'min_load_efficiency') in process__ct_method then 
-	                  + v_online_linear[p, d, t] 
-			              * ptProcess_section[p, t]
-				          * p_entity_unitsize[p]
-					)	  
-				)		  
-			  # Receiving credits for removing CO2 (decreases the objective function)
-	          - sum {(p, source, n) in process_source_sink } (
-			      + v_flow[p, source, n, d, t]
-				)  
-			) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
- 	 + sum {(p, d, t) in pdt_online} (v_startup_linear[p, d, t] * pdProcess[p, 'startup_cost', d] * p_entity_unitsize[p]) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
-     + sum {(p, source, sink, d, t) in pssdt_varCost_noEff}
-       ( + ptProcess__source__sink__t_varCost[p, source, sink, t]
-	       * v_flow[p, source, sink, d, t]
-       ) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
-     + sum {(p, source, sink, d, t) in pssdt_varCost_eff}
-	   ( + ptProcess_source[p, source, 'variable_cost', t]
-	       * v_flow[p, source, sink, d, t] 
-           	       * (if (p, 'min_load_efficiency') in process__ct_method then ptProcess_slope[p, t] else 1 / ptProcess[p, 'efficiency', t])
-                   * (if p in process_unit then p_process_sink_coefficient[p, sink] / p_process_source_coefficient[p, source] else 1)
-               + (if (p, 'min_load_efficiency') in process__ct_method then 
-	               + v_online_linear[p, d, t] 
-   			          * ptProcess_section[p, t]
-			          * p_entity_unitsize[p]
-    			 )	  
-	   ) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
-     + sum {(p, source, sink, d, t) in pssdt_varCost_eff}
-	   ( + ptProcess_sink[p, sink, 'variable_cost', t]
-	       * v_flow[p, source, sink, d, t] 
-	   ) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
-     + sum {(p, source, sink, d, t) in pssdt_varCost_eff}
-	   ( + ptProcess[p, 'variable_cost', t]
-	       * v_flow[p, source, sink, d, t] 
-       ) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
-#      + sum {(p, source, sink, m) in process__source__sink__ramp_method, (d, t) in dt : m in ramp_cost_method}
-#        ( + v_ramp[p, source, sink, d, t] * pProcess_source_sink[p, source, sink, 'ramp_cost'] ) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
-      + sum {g in groupInertia, (d, t) in dt} vq_inertia[g, d, t] * pdGroup[g, 'penalty_inertia', d] * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
-      + sum {g in groupNonSync, (d, t) in dt} vq_non_synchronous[g, d, t] * pdGroup[g, 'penalty_non_synchronous', d] * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
-      + sum {n in nodeBalance, (d, t) in dt} vq_state_up[n, d, t] * ptNode[n, 'penalty_up', t] * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
-      + sum {n in nodeBalance, (d, t) in dt} vq_state_down[n, d, t] * ptNode[n, 'penalty_down', t] * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
-      + sum {(r, ud, ng) in reserve__upDown__group, (d, t) in dt} vq_reserve[r, ud, ng, d, t] * p_reserve_upDown_group[r, ud, ng, 'penalty_reserve'] * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+  + sum {(c, n) in commodity_node, (d, t) in dt} 
+	( pdCommodity[c, 'price', d]
+	  * (
+		  # Buying a commodity (increases the objective function)
+		  + sum {(p, n, sink) in process_source_sink_noEff } 
+			( + v_flow[p, n, sink, d, t] )
+		  + sum {(p, n, sink) in process_source_sink_eff } (
+			  + v_flow[p, n, sink, d, t]
+				  * (if (p, 'min_load_efficiency') in process__ct_method then ptProcess_slope[p, t] else 1 / ptProcess[p, 'efficiency', t])
+				  * (if p in process_unit then p_process_sink_coefficient[p, sink] / p_process_source_coefficient[p, n] else 1)
+			  + (if (p, 'min_load_efficiency') in process__ct_method then 
+				  + v_online_linear[p, d, t] 
+					  * ptProcess_section[p, t]
+					  * p_entity_unitsize[p]
+				)	  
+			)		  
+		  # Selling to a commodity node (decreases objective function if price is positive)
+		  - sum {(p, source, n) in process_source_sink } (
+			  + v_flow[p, source, n, d, t]
+			)  
+		)
+	  * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+	)
+  + sum {(g, c, n, d, t) in gcndt_co2} 
+	( p_commodity[c, 'co2_content'] * pdGroup[g, 'co2_price', d] 
+	  * (
+		  # Paying for CO2 (increases the objective function)
+		  + sum {(p, n, sink) in process_source_sink_noEff } 
+			( + v_flow[p, n, sink, d, t] )
+		  + sum {(p, n, sink) in process_source_sink_eff } (
+			  + v_flow[p, n, sink, d, t]
+				  * (if (p, 'min_load_efficiency') in process__ct_method then ptProcess_slope[p, t] else 1 / ptProcess[p, 'efficiency', t])
+				  * (if p in process_unit then p_process_sink_coefficient[p, sink] / p_process_source_coefficient[p, n] else 1)
+			  + (if (p, 'min_load_efficiency') in process__ct_method then 
+				  + v_online_linear[p, d, t] 
+					  * ptProcess_section[p, t]
+					  * p_entity_unitsize[p]
+				)	  
+			)		  
+		  # Receiving credits for removing CO2 (decreases the objective function)
+		  - sum {(p, source, n) in process_source_sink } (
+			  + v_flow[p, source, n, d, t]
+			)  
+	    )		
+	  * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+	)
+  + sum {(p, d, t) in pdt_online} (v_startup_linear[p, d, t] * pdProcess[p, 'startup_cost', d] * p_entity_unitsize[p]) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+  + sum {(p, source, sink, d, t) in pssdt_varCost_noEff}
+    ( + ptProcess__source__sink__t_varCost[p, source, sink, t]
+	    * v_flow[p, source, sink, d, t]
+        * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+	)
+  + sum {(p, source, sink, d, t) in pssdt_varCost_eff}
+    ( + ptProcess_source[p, source, 'variable_cost', t]
+	    * v_flow[p, source, sink, d, t] 
+			   * (if (p, 'min_load_efficiency') in process__ct_method then ptProcess_slope[p, t] else 1 / ptProcess[p, 'efficiency', t])
+			   * (if p in process_unit then p_process_sink_coefficient[p, sink] / p_process_source_coefficient[p, source] else 1)
+	  + ( if (p, 'min_load_efficiency') in process__ct_method then 
+		    + v_online_linear[p, d, t] 
+			   * ptProcess_section[p, t]
+			   * p_entity_unitsize[p]
+		)	  
+    ) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+  + sum {(p, source, sink, d, t) in pssdt_varCost_eff}
+    ( + ptProcess_sink[p, sink, 'variable_cost', t]
+	    * v_flow[p, source, sink, d, t] 
+    ) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+  + sum {(p, source, sink, d, t) in pssdt_varCost_eff}
+    ( + ptProcess[p, 'variable_cost', t]
+ 	   * v_flow[p, source, sink, d, t] 
+    ) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+#  + sum {(p, source, sink, m) in process__source__sink__ramp_method, (d, t) in dt : m in ramp_cost_method}
+#    ( + v_ramp[p, source, sink, d, t] * pProcess_source_sink[p, source, sink, 'ramp_cost'] ) * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+  + sum {g in groupInertia, (d, t) in dt} vq_inertia[g, d, t] * pdGroup[g, 'penalty_inertia', d] * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+  + sum {g in groupNonSync, (d, t) in dt} vq_non_synchronous[g, d, t] * pdGroup[g, 'penalty_non_synchronous', d] * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+  + sum {n in nodeBalance, (d, t) in dt} vq_state_up[n, d, t] * ptNode[n, 'penalty_up', t] * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+  + sum {n in nodeBalance, (d, t) in dt} vq_state_down[n, d, t] * ptNode[n, 'penalty_down', t] * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
+  + sum {(r, ud, ng) in reserve__upDown__group, (d, t) in dt} vq_reserve[r, ud, ng, d, t] * p_reserve_upDown_group[r, ud, ng, 'penalty_reserve'] * step_duration[d, t] * p_discount_with_perpetuity_operations[d] / period_share_of_year[d]
   - sum {n in nodeState, (d, t) in period__time_last : (n, 'use_reference_price') in node__storage_solve_horizon_method && d in period_last}
       + pdNode[n, 'storage_state_reference_price', d]
         * v_state[n, d, t]
@@ -2219,14 +2224,14 @@ param r_cost_entity_invest_d{(e, d) in ed_invest} :=
   + v_invest[e, d]
       * p_entity_unitsize[e]
       * ed_entity_annual[e, d]
-	  * p_discount_in_perpetuity_investment[d]
+	  * p_discount_with_perpetuity_investment[d]
 ;
 
 param r_cost_entity_divest_d{(e, d) in ed_divest} :=
   - v_divest[e, d]
       * p_entity_unitsize[e]
       * ed_entity_annual_divest[e, d]
-	  * p_discount_in_perpetuity_investment[d]
+	  * p_discount_with_perpetuity_investment[d]
 ;
 
 param r_costOper_dt{(d, t) in dt} :=
@@ -2388,10 +2393,10 @@ for {d in period}
   { printf ',%.12g', period_share_of_year[d] >> fn_summary; }
 printf '\n"Operational discount factor"' >> fn_summary;
 for {d in period}
-  { printf ',%.12g', p_discount_in_perpetuity_operations[d] >> fn_summary; }
+  { printf ',%.12g', p_discount_with_perpetuity_operations[d] >> fn_summary; }
 printf '\n"Investment discount factor"' >> fn_summary;
 for {d in period}
-  { printf ',%.12g', p_discount_in_perpetuity_investment[d] >> fn_summary; }
+  { printf ',%.12g', p_discount_with_perpetuity_investment[d] >> fn_summary; }
 printf '\n' >> fn_summary;
 
 printf '\nEmissions\n' >> fn_summary;
@@ -2468,23 +2473,25 @@ for {g in groupOutput, s in solve_current, d in period_realized : sum{(g, n) in 
   }
 
 
-printf 'Write cost summary for realized periods...\n';
+printf 'Write annualized cost summary for realized periods...\n';
 param fn_summary_cost symbolic := "output/costs__period.csv";
 for {i in 1..1 : p_model['solveFirst']}
   { 
-    printf 'solve,period,total,"unit investment","connection investment","storage investment",' > fn_summary_cost;
-    printf 'commodity,CO2,"variable cost",starts,"upward penalty","downward penalty","inertia penalty",' >> fn_summary_cost;
-	printf '"non-synchronous penalty","capacity margin penalty","upward reserve penalty",' >> fn_summary_cost;
-	printf '"downward reserve penalty"\n' >> fn_summary_cost;
+    printf 'solve,period,total,"unit investment/retirement","connection investment/retirement",' > fn_summary_cost;
+    printf '"storage investment/retirement",commodity,CO2,"variable cost",starts,"upward penalty",' >> fn_summary_cost;
+	printf '"downward penalty","inertia penalty","non-synchronous penalty","capacity margin penalty",' >> fn_summary_cost;
+	printf '"upward reserve penalty","downward reserve penalty"\n' >> fn_summary_cost;
   }
 for {s in solve_current, d in period_realized}
   { 
     printf '%s,%s,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g,%.12g\n', 
       s, d,
-	  (r_costOper_and_penalty_d[d] / period_share_of_year[d] + r_costInvest_d[d]) / 1000000,
-      r_costInvestUnit_d[d] / 1000000,
-      r_costInvestConnection_d[d] / 1000000,
-      r_costInvestState_d[d] / 1000000,
+	  (r_costOper_and_penalty_d[d] / period_share_of_year[d] 
+	    + r_costInvest_d[d] / p_discount_with_perpetuity_investment[d] 
+		+ r_costDivest_d[d] / p_discount_with_perpetuity_investment[d]) / 1000000,
+      (r_costInvestUnit_d[d] + r_costDivestUnit_d[d]) / p_discount_with_perpetuity_investment[d] / 1000000,
+      (r_costInvestConnection_d[d] + r_costDivestConnection_d[d]) / p_discount_with_perpetuity_investment[d] / 1000000,
+      (r_costInvestState_d[d] + r_costDivestState_d[d]) / p_discount_with_perpetuity_investment[d] / 1000000,
 	  r_cost_commodity_d[d] / period_share_of_year[d] / 1000000,
 	  r_cost_co2_d[d] / period_share_of_year[d] / 1000000,
 	  r_cost_variable_d[d] / period_share_of_year[d] / 1000000,
@@ -2505,7 +2512,7 @@ for {i in 1..1 : p_model['solveFirst']}
   { 
     printf 'solve,period,time,commodity,CO2,variable,starts,"upward slack penalty","downward slack penalty",' > fn_summary_cost_dt;
 	printf '"inertia slack penalty","non-synchronous slack penalty","upward reserve slack penalty",' >> fn_summary_cost_dt;
-	printf '""downward reserves slack penalty"\n' >> fn_summary_cost_dt;
+	printf '"downward reserves slack penalty"\n' >> fn_summary_cost_dt;
   }
 for {s in solve_current, (d, t) in dt : d in period_realized}
   { 
@@ -2657,6 +2664,10 @@ printf 'Write reserve from processes over time...\n';
 param fn_process__reserve__upDown__node__dt symbolic := "output/process__reserve__upDown__node__period__t.csv";
 for {i in 1..1 : p_model['solveFirst']}
   { printf 'solve,period,time' > fn_process__reserve__upDown__node__dt;   # Print the header on the first solve
+    for  {(p, r, ud, n) in process_reserve_upDown_node_active} printf ',%s', (if p in process_unit then "unit__reserve__upDown__node" else "connection__reserve__upDown__node") >> fn_process__reserve__upDown__node__dt;
+	printf '\n,,' >> fn_process__reserve__upDown__node__dt;
+    for  {(p, r, ud, n) in process_reserve_upDown_node_active} printf ',%s', (if p in process_unit then "unit" else "connection") >> fn_process__reserve__upDown__node__dt;
+	printf '\n,,' >> fn_process__reserve__upDown__node__dt;
     for  {(p, r, ud, n) in process_reserve_upDown_node_active} printf ',%s', p >> fn_process__reserve__upDown__node__dt;
 	printf '\n,,' >> fn_process__reserve__upDown__node__dt;
     for  {(p, r, ud, n) in process_reserve_upDown_node_active} printf ',%s', r >> fn_process__reserve__upDown__node__dt;
@@ -2676,6 +2687,10 @@ printf 'Write average reserve from processes during periods...\n';
 param fn_process__reserve__upDown__node__d symbolic := "output/process__reserve__upDown__node__period_average.csv";
 for {i in 1..1 : p_model['solveFirst']}
   { printf 'solve,period' > fn_process__reserve__upDown__node__d;   # Print the header on the first solve
+    for  {(p, r, ud, n) in process_reserve_upDown_node_active} printf ',%s', (if p in process_unit then "unit__reserve__upDown__node" else "connection__reserve__upDown__node") >> fn_process__reserve__upDown__node__d;
+	printf '\n,' >> fn_process__reserve__upDown__node__d;
+    for  {(p, r, ud, n) in process_reserve_upDown_node_active} printf ',%s', (if p in process_unit then "unit" else "connection") >> fn_process__reserve__upDown__node__d;
+	printf '\n,' >> fn_process__reserve__upDown__node__d;
     for  {(p, r, ud, n) in process_reserve_upDown_node_active} printf ',%s', p >> fn_process__reserve__upDown__node__d;
 	printf '\n,' >> fn_process__reserve__upDown__node__d;
     for  {(p, r, ud, n) in process_reserve_upDown_node_active} printf ',%s', r >> fn_process__reserve__upDown__node__d;
@@ -2764,11 +2779,11 @@ for {n in node, s in solve_current, d in period_realized}
 printf 'Write process CO2 results for periods...\n';
 param fn_process_co2__d symbolic := "output/process__period_co2.csv";
 for {i in 1..1 : p_model['solveFirst']}
-  { printf 'process,solve,period,"CO2 [Mt]"\n' > fn_process_co2__d; }  # Print the header on the first solve 
+  { printf 'class,process,solve,period,"CO2 [Mt]"\n' > fn_process_co2__d; }  # Print the header on the first solve 
 for {p in process_co2, s in solve_current, d in period_realized}
   {
-    printf '%s,%s,%s,%.8g\n'
-		, p, s, d
+    printf '%s,%s,%s,%s,%.8g\n'
+		, (if p in process_unit then "unit" else "connection"), p, s, d
         , sum{(p, c, n) in process__commodity__node_co2} r_process_emissions_co2_d[p, c, n, d] / 1000000
 	  >> fn_process_co2__d;
   }
@@ -2787,7 +2802,7 @@ for {n in node, s in solve_current, (d, t) in dt : d in period_realized}
 	    , sum{(p, source, n) in process_source_sink_alwaysProcess : p in process_connection} r_process_source_sink_flow_dt[p, source, n, d, t]
   	    , sum{(p, n, sink) in process_source_sink_alwaysProcess : p in process_unit} -r_process_source_sink_flow_dt[p, n, sink, d, t]
   	    , sum{(p, n, sink) in process_source_sink_alwaysProcess : p in process_connection} -r_process_source_sink_flow_dt[p, n, sink, d, t]
-	    , (if n in nodeState then v_state[n, d, t].val else 0)
+	    , (if n in nodeState then r_nodeState_change_dt[n, d, t] else 0)
         , (if n in nodeSelfDischarge then r_selfDischargeLoss_dt[n, d, t] else 0)
 	    , (if n in nodeBalance then vq_state_up[n, d, t].val else 0)
 	    , (if n in nodeBalance then -vq_state_down[n, d, t].val else 0)
@@ -3108,37 +3123,6 @@ for {s in solve_current, d in period_invest : d in period_realized}
 		    >> fn_group_capmargin_slack__d;
       }
   }
-
-param resultFile symbolic := "output/result.csv";
-
-printf 'Upward slack for node balance\n' > resultFile;
-for {n in nodeBalance, (d, t) in dt}
-  {
-    printf '%s,%s,%s,%.8g\n', n, d, t, vq_state_up[n, d, t].val >> resultFile;
-  }
-
-printf '\nDownward slack for node balance\n' >> resultFile;
-for {n in nodeBalance, (d, t) in dt}
-  {
-    printf '%s,%s,%s,%.8g\n', n, d, t, vq_state_down[n, d, t].val >> resultFile;
-  }
-
-printf '\nReserve upward slack variable\n' >> resultFile;
-for {(r, ud, ng) in reserve__upDown__group, (d, t) in dt}
-  {
-    printf '%s,%s,%s,%s,%s,%.8g\n', r, ud, ng, d, t, vq_reserve[r, ud, ng, d, t].val >> resultFile;
-  }
-
-printf '\nInvestments\n' >> resultFile;
-for {(e, d_invest) in ed_invest} {
-  printf '%s,%s,%.8g\n', e, d_invest, v_invest[e, d_invest].val * p_entity_unitsize[e] >> resultFile;
-}
-
-printf '\nDivestments\n' >> resultFile;
-for {(e, d_invest) in ed_divest} {
-  printf '%s,%s,%.8g\n', e, d_invest, v_divest[e, d_invest].val * p_entity_unitsize[e] >> resultFile;
-}
-
 
 ### UNIT TESTS ###
 param unitTestFile symbolic := "tests/unitTests.txt";
