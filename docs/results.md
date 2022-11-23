@@ -51,6 +51,7 @@ FlexTool outputs results typical to a planning model or a scheduling model, but 
 - `node` object `balance` parameter - [MWh] cumulative inputs (positive) and (outputs) to the node from all the possible sources (*from_units*, *from_connection*, *to_units*, *to_connections*, *state change* over the period, *self discharge* during the period, *upward slack* for involuntary demand reduction and *downward slack* for involuntary demand increase)
 - `node` object `balance_t` parameter - [MWh] same as above, but for each timestep
 - `node` object `state_t` parameter - [MWh] storage state of the node in each timestep
+- `node` object `state_t` parameter - storage state of the node in each timestep (typically MWh).
 
 ## Unit online and startup
 
@@ -76,6 +77,7 @@ FlexTool outputs results typical to a planning model or a scheduling model, but 
   - *total* - [MW or MWh] sum of *existing*, *invested* and *retired* capacities
 - `unit`, `connection` and `node` objects `invest_marginal` parameter - [CUR/MW or MWh] marginal cost to invest in one more MW or MWh of capacity (zero value means that the model has invested in optimal amount; negative value means that if the model would be able to invest more, it could reduce total cost by the stated amount per MW or MWh; positive value means the cost is higher than the benefit by the stated amount per MW or MWh)
 - `group` parameter `slack_capacity_margin` - [MW or MWh] use of slack variable and the associated penalty cost to meet the capacity margin requirement in the period
+- `group` parameter `slack_capacity_margin` - use of slack variable and the associated penalty cost to meet the capacity margin requirement in the period
 
 ## CO2 emissions
 
